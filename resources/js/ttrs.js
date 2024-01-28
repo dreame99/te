@@ -1,23 +1,12 @@
 
-const STAGE_WIDTH = 13, STAGE_HEIGHT = 13;
 const BLOCK_SIZE = 14;
+const STAGE_WIDTH = 13, STAGE_HEIGHT = 13;
+let stage = Array.from({length: STAGE_HEIGHT}, () => Array(STAGE_WIDTH).fill(0));
 let curBlocks = [];
-let stackedBlocks = [];
 
 window.onload = () => {
     let context = canvas.getContext("2d");
-    canvas.width = BLOCK_SIZE * STAGE_WIDTH;
-    canvas.height = BLOCK_SIZE * STAGE_HEIGHT;
-
-    for( let x = 0; x < STAGE_WIDTH; x++ ) {
-        stackedBlocks.push({x: x, y: STAGE_HEIGHT - 1, color: "black"});
-    }
-    for( let y = 0; y < STAGE_HEIGHT; y++ ) {
-        stackedBlocks.push({x: 0, y: y, color: "black"});
-        stackedBlocks.push({x: STAGE_WIDTH - 1, y: y, color: "black"});
-    }
-
-    update(context);
+    canvas.width = canvas.height = 13 * BLOCK_SIZE;
 
     document.onkeydown = e => {
         let nextBlocks;
@@ -32,105 +21,83 @@ window.onload = () => {
             nextBlocks = getRotatedBlocks(curBlocks);
         }
 
-        if( isCollapse(nextBlocks, stackedBlocks) ) {
-            if( e.keyCode == 40 ) {
-                stackedBlocks.push(...curBlocks);
-                curBlocks = [];
+        if( nextBlocks ) {
+            if( isCollapse(nextBlocks) ) {
+                if( e.keyCode == 40 ) {
+                    curBlocks.map(p => stage[p[1]][p[0]] = 1);
+                    curBlocks = [];
+                }
+            } else {
+                curBlocks = nextBlocks;
             }
-        } else {
-            curBlocks = nextBlocks;
         }
-
-        update(context);
     }
 
+    setInterval(() => draw(context), 16);
     setInterval(() => {
+        if( !curBlocks.length ) {
+            curBlocks = createRandomBlocks();
+        }
+
         let nextBlocks = getMovedBlocks(curBlocks, 0, 1);
 
-        if( isCollapse(nextBlocks, stackedBlocks) ) {
-            stackedBlocks.push(...curBlocks);
+        if( isCollapse(nextBlocks) ) {
+            curBlocks.map(p => stage[p[1]][p[0]] = 1);
             curBlocks = [];
         } else {
             curBlocks = nextBlocks;
         }
 
-        update(context);
+        stage.forEach((s, i) => {
+            if( s.reduce((a, b) => a + b) == STAGE_WIDTH ) {
+                for( let j = i; j > 0; j-- ) {
+                    stage[j] = stage[j - 1];
+                }
+                stage[0] = Array(STAGE_WIDTH).fill(0);
+            }
+        });
     }, 700);
 }
 
-function update(context) {
-    if( curBlocks.length == 0 ) {
-        curBlocks = createRandomBlocks();
-    }
-
-    drawStage(context);
-    curBlocks.forEach(o => drawBlock(context, o.x, o.y, o.color));
-    stackedBlocks.forEach(o => drawBlock(context, o.x, o.y, o.color));
-    deleteFilledLine();
-}
-
-function deleteFilledLine() {
-    for( let i = 0; i < STAGE_HEIGHT - 1; i++ ) {
-        let lineBlocks = stackedBlocks.filter(o => o.x > 0 && o.x < STAGE_WIDTH - 1 && o.y == i);
-        if( lineBlocks.length == STAGE_WIDTH - 2 ) {
-            lineBlocks.map(lineBlock => stackedBlocks.splice(stackedBlocks.indexOf(lineBlock), 1));
-            stackedBlocks.filter(o => o.x > 0 && o.x < STAGE_WIDTH - 1 && o.y < i).forEach(o => o.y++);
-        }
-    }
-}
-
-function getRotatedBlocks(blocks) {
-    let cx = blocks[0].x;
-    let cy = blocks[0].y;
-
-    return blocks.map(o => { return {x: cx + cy - o.y, y: cy - cx + o.x, color: o.color} });
+function isCollapse(blocks) {
+    return blocks.filter(p => p[1] >= 0 && (p[0] < 0 || p[0] >= STAGE_WIDTH || p[1] >= STAGE_HEIGHT || stage[p[1]][p[0]])).length;
 }
 
 function getMovedBlocks(blocks, mx, my) {
-    return blocks.map(o => Object.assign({}, o, {x: o.x + mx, y: o.y + my}));
+    return blocks.map(p => [p[0] + mx, p[1] + my]);
+}
+
+function getRotatedBlocks(blocks) {
+    return blocks.map(p => [blocks[0][0] + blocks[0][1] - p[1], blocks[0][1] - blocks[0][0] + p[0]]);
 }
 
 function createRandomBlocks() {
     let kind = Math.random() * 7 | 0;
-    let pos;
+    let m = STAGE_WIDTH / 2 | 0;
 
     if( kind == 0 ) {
-        pos = [[0, -1, 0, -1], [-1, -1, -2, -2]];
+        return [[m, -1], [m - 1, -1], [m, -2], [m - 1, -2]];
     } else if( kind == 1 ) {
-        pos = [[0, 1, -1, -1], [-1, -1, -1, -2]];
+        return [[m, -1], [m - 1, -1], [m + 1, -1], [m - 1, -2]];
     } else if( kind == 2 ) {
-        pos = [[0, 1, -1, 0], [-1, -1, -1, -2]];
+        return [[m, -1], [m - 1, -1], [m + 1, -1], [m, -2]];
     } else if( kind == 3 ) {
-        pos = [[0, 1, -1, 1], [-1, -1, -1, -2]];
+        return [[m, -1], [m - 1, -1], [m + 1, -1], [m + 1, -2]];
     } else if( kind == 4 ) {
-        pos = [[0, 1, 0, -1], [-1, -1, -2, -2]];
+        return [[m, -1], [m - 1, -1], [m, -2], [m + 1, -2]];
     } else if( kind == 5 ) {
-        pos = [[0, -1, 0, 1], [-1, -1, -2, -2]];
+        return [[m, -1], [m + 1, -1], [m, -2], [m - 1, -2]];
     } else {
-        pos = [[0, 0, 0, 0], [-2, -1, -3, -4]];
+        return [[m, -2], [m, -1], [m, -3], [m, -4]];
     }
-
-    return Array.from({length: 4}, (o, i) => { return {x: (STAGE_WIDTH / 2 | 0) + pos[0][i], y: pos[1][i], color: "#646E44"}});
 }
 
-function isCollapse(targetBlocks, sourceBlocks) {
-    return targetBlocks.filter(o => sourceBlocks.filter(s => s.x == o.x && s.y == o.y).length).length;
-}
-
-function drawStage(context) {
-    for( let x = 0; x < STAGE_WIDTH; x++ ) {
-        for( let y = 0; y < STAGE_HEIGHT; y++ ) {
-            drawBlock(context, x, y, "#B7C196");
-        }
-    }
+function draw(context) {
+    stage.map((o, y) => stage[y].map((n, x) => drawBlock(context, x, y, n? "black" : "#BBB")));
+    curBlocks.map(p => drawBlock(context, p[0], p[1], "black"));
 }
 
 function drawBlock(context, x, y, color) {
-    let borderSize = Math.max(BLOCK_SIZE / 10, 1);
     context.fillStyle = color;
     context.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-    context.fillStyle = "#C4CFA1";
-    context.fillRect(x * BLOCK_SIZE + borderSize, y * BLOCK_SIZE + borderSize, BLOCK_SIZE - borderSize * 2, BLOCK_SIZE - borderSize * 2);
-    context.fillStyle = color;
-    context.fillRect(x * BLOCK_SIZE + borderSize * 2, y * BLOCK_SIZE + borderSize * 2, BLOCK_SIZE - borderSize * 4, BLOCK_SIZE - borderSize * 4);
 }
