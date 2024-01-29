@@ -24,7 +24,10 @@ window.onload = () => {
         if( nextBlocks ) {
             if( isCollapse(nextBlocks) ) {
                 if( e.keyCode == 40 ) {
-                    curBlocks.map(p => stage[p[1]][p[0]] = 1);
+                    if( curBlocks.filter(p => p[1] < 0).length ) {
+                        location.reload();
+                    }
+                    curBlocks.map((p, i) => i > 0? stage[p[1]][p[0]] = 1 : "");
                     curBlocks = [];
                 }
             } else {
@@ -42,7 +45,10 @@ window.onload = () => {
         let nextBlocks = getMovedBlocks(curBlocks, 0, 1);
 
         if( isCollapse(nextBlocks) ) {
-            curBlocks.map(p => stage[p[1]][p[0]] = 1);
+            if( curBlocks.filter(p => p[1] < 0).length ) {
+                location.reload();
+            }
+            curBlocks.map((p, i) => i > 0? stage[p[1]][p[0]] = 1 : "");
             curBlocks = [];
         } else {
             curBlocks = nextBlocks;
@@ -60,7 +66,7 @@ window.onload = () => {
 }
 
 function isCollapse(blocks) {
-    return blocks.filter(p => p[1] >= 0 && (p[0] < 0 || p[0] >= STAGE_WIDTH || p[1] >= STAGE_HEIGHT || stage[p[1]][p[0]])).length;
+    return blocks.filter((p, i) => i > 0 && p[1] >= 0 && (p[0] < 0 || p[0] >= STAGE_WIDTH || p[1] >= STAGE_HEIGHT || stage[p[1]][p[0]])).length;
 }
 
 function getMovedBlocks(blocks, mx, my) {
@@ -76,19 +82,19 @@ function createRandomBlocks() {
     let m = STAGE_WIDTH / 2 | 0;
 
     if( kind == 0 ) {
-        return [[m, -1], [m - 1, -1], [m, -2], [m - 1, -2]];
+        return [[m - 0.5, -1.5], [m, -1], [m - 1, -1], [m, -2], [m - 1, -2]];
     } else if( kind == 1 ) {
-        return [[m, -1], [m - 1, -1], [m + 1, -1], [m - 1, -2]];
+        return [[m, -1], [m, -1], [m - 1, -1], [m + 1, -1], [m - 1, -2]];
     } else if( kind == 2 ) {
-        return [[m, -1], [m - 1, -1], [m + 1, -1], [m, -2]];
+        return [[m, -1], [m, -1], [m - 1, -1], [m + 1, -1], [m, -2]];
     } else if( kind == 3 ) {
-        return [[m, -1], [m - 1, -1], [m + 1, -1], [m + 1, -2]];
+        return [[m, -1], [m, -1], [m - 1, -1], [m + 1, -1], [m + 1, -2]];
     } else if( kind == 4 ) {
-        return [[m, -1], [m - 1, -1], [m, -2], [m + 1, -2]];
+        return [[m, -1], [m, -1], [m - 1, -1], [m, -2], [m + 1, -2]];
     } else if( kind == 5 ) {
-        return [[m, -1], [m + 1, -1], [m, -2], [m - 1, -2]];
+        return [[m, -1], [m, -1], [m + 1, -1], [m, -2], [m - 1, -2]];
     } else {
-        return [[m, -2], [m, -1], [m, -3], [m, -4]];
+        return [[m, -2], [m, -2], [m, -1], [m, -3], [m, -4]];
     }
 }
 
